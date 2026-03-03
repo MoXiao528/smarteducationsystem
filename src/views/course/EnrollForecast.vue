@@ -63,6 +63,9 @@ import { ref, reactive, onMounted } from 'vue'
 import request from '@/utils/request'
 import ChartWrapper from '@/components/ChartWrapper.vue'
 
+import { useUserStore } from '@/store/user'
+import { useDictStore } from '@/store/dict'
+
 // Assuming we have an endpoint that returns all courses or we get it from dict
 const courseOptions = ref([]) 
 const courseId = ref(null)
@@ -74,12 +77,23 @@ const metrics = reactive({ mae: '-', rmse: '-' })
 const suggestionText = ref('')
 const predictOption = ref({})
 
-// Mock initial loading of all courses since there isn't a global dict without semesters
+const userStore = useUserStore()
+const dictStore = useDictStore()
+
 const loadAllCourses = async () => {
-   // A real impl might need a paginated search endpoint for courses, here we just call dict/courses globally
-   // For mock let's assume dict returns all if empty params 
    try {
-       courseOptions.value = await request({ url: '/dict/courses', method: 'get' })
+       // 获取学期列表，取最新学期作为默认 semesterId
+       const semesters = await dictStore.getSemesters()
+       const defaultSemesterId = semesters.length > 0 ? semesters[semesters.length - 1].id : null
+       let list = await request({
+          url: '/dict/courses',
+          method: 'get',
+          params: { semesterId: defaultSemesterId }
+       })
+       if (userStore.dataScope?.type === 'TEACHING' && userStore.dataScope.courseIds && userStore.dataScope.courseIds.length > 0) {
+          list = list.filter(c => userStore.dataScope.courseIds.includes(c.id))
+       }
+       courseOptions.value = list
        if(courseOptions.value && courseOptions.value.length > 0) {
           courseId.value = courseOptions.value[0].id
           fetchPredictData()
@@ -113,8 +127,8 @@ const fetchPredictData = async () => {
 
       predictOption.value = {
          tooltip: { trigger: 'axis' },
-         legend: { data: ['历史实际', '预测期望'] },
-         grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+         legend: { data: ['历史实际', '预测期望'], bottom: '0' },
+         grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
          xAxis: { type: 'category', boundaryGap: false, data: allX },
          yAxis: { type: 'value' },
          series: [

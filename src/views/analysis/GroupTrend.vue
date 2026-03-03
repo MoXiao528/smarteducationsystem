@@ -45,12 +45,33 @@ const queryParams = reactive({
   metric: 'avgScore'
 })
 
+const resolvedScope = reactive({
+   classId: null,
+   gradeId: null
+})
+
+const ensureScope = async () => {
+   // If dataScope already has classId/gradeId, use them directly
+   if (userStore.dataScope.classId) resolvedScope.classId = userStore.dataScope.classId
+   if (userStore.dataScope.gradeId) resolvedScope.gradeId = userStore.dataScope.gradeId
+
+   // If still missing (student user whose /auth/me doesn't return these), fallback to /student/profile
+   if (!resolvedScope.classId || !resolvedScope.gradeId) {
+      try {
+         const profile = await request({ url: '/student/profile', method: 'get' })
+         if (profile) {
+            if (!resolvedScope.classId && profile.classId) resolvedScope.classId = profile.classId
+            if (!resolvedScope.gradeId && profile.gradeId) resolvedScope.gradeId = profile.gradeId
+         }
+      } catch (e) { /* profile API might not exist for non-student */ }
+   }
+}
+
 const getTargetId = () => {
-    // Determine the ID based on dimension
     if (queryParams.dimension === 'CLASS') {
-       return userStore.dataScope.classId
+       return resolvedScope.classId
     } else if (queryParams.dimension === 'GRADE') {
-       return userStore.dataScope.gradeId
+       return resolvedScope.gradeId
     }
     return null
 }
@@ -83,8 +104,8 @@ const renderChart = (individualData, groupData) => {
 
   const option = {
     tooltip: { trigger: 'axis' },
-    legend: { data: ['个人' + metricName, groupName] },
-    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+     legend: { data: ['个人' + metricName, groupName], bottom: 0 },
+     grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
     xAxis: {
       type: 'category',
       boundaryGap: false,
@@ -187,7 +208,8 @@ const handleResize = () => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await ensureScope()
   fetchData()
   window.addEventListener('resize', handleResize)
 })

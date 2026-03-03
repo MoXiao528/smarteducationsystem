@@ -112,21 +112,26 @@ const userStore = useUserStore()
 
 const name = computed(() => userStore.name)
 
-// Simple route filtering based on permission
 const filteredRoutes = computed(() => {
-   return constantRoutes.filter(r => {
-      // If it has children, check if any child is permitted
+   return constantRoutes.map(r => {
+      const parentRolesMatch = !(r.meta && r.meta.roles) || r.meta.roles.some(role => userStore.roles.includes(role));
+      if (!parentRolesMatch) return null;
+
       if(r.children) {
-         r.children = r.children.filter(child => {
+         const filteredChildren = r.children.filter(child => {
+            if (child.meta && child.meta.roles && !child.meta.roles.some(role => userStore.roles.includes(role))) {
+               return false;
+            }
             if(child.meta && child.meta.permission) {
                return userStore.hasPermission(child.meta.permission)
             }
             return true;
          })
-         return r.children.length > 0;
+         if (filteredChildren.length === 0) return null;
+         return { ...r, children: filteredChildren }
       }
-      return true;
-   })
+      return r;
+   }).filter(Boolean);
 })
 
 const activeMenu = computed(() => {

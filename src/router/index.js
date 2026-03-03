@@ -12,13 +12,18 @@ export const constantRoutes = [
     {
         path: '/',
         component: Layout,
-        redirect: '/overview',
+        redirect: () => {
+            const userStore = useUserStore()
+            if (userStore.roles.includes('STUDENT')) return '/student/profile'
+            if (userStore.roles.includes('TEACHER')) return '/teacher/profile'
+            return '/overview'
+        },
         children: [
             {
                 path: 'overview',
                 name: 'Overview',
                 component: () => import('@/views/overview/index.vue'),
-                meta: { title: '总览看板', icon: 'DataLine', affix: true }
+                meta: { title: '总览看板', icon: 'DataLine', affix: true, roles: ['COLLEGE_ADMIN', 'SUPER_ADMIN', 'SCHOOL_ADMIN'] }
             }
         ]
     },
@@ -32,13 +37,13 @@ export const constantRoutes = [
                 path: 'compare',
                 name: 'CompareAnalysis',
                 component: () => import('@/views/analysis/Compare.vue'),
-                meta: { title: '统一对比分析', icon: 'ScaleToOriginal', permission: 'analysis:compare' }
+                meta: { title: '统一对比分析', icon: 'ScaleToOriginal', permission: 'analysis:compare', roles: ['COLLEGE_ADMIN', 'SUPER_ADMIN', 'SCHOOL_ADMIN'] }
             },
             {
                 path: 'group-trend',
                 name: 'GroupTrendAnalysis',
                 component: () => import('@/views/analysis/GroupTrend.vue'),
-                meta: { title: '群体对比看板', icon: 'Histogram' }
+                meta: { title: '群体对比看板', icon: 'Histogram', roles: ['COLLEGE_ADMIN', 'SUPER_ADMIN', 'SCHOOL_ADMIN', 'STUDENT'] }
             }
         ]
     },
@@ -59,6 +64,12 @@ export const constantRoutes = [
                 name: 'StudentScores',
                 component: () => import('@/views/student/Scores.vue'),
                 meta: { title: '成绩明细查询', icon: 'Document' }
+            },
+            {
+                path: 'progress',
+                name: 'ProgressTrend',
+                component: () => import('@/views/student/ProgressTrend.vue'),
+                meta: { title: '进步趋势追踪', icon: 'TrendCharts' }
             }
         ]
     },
@@ -73,6 +84,12 @@ export const constantRoutes = [
                 name: 'EnrollDashboard',
                 component: () => import('@/views/course/EnrollDashboard.vue'),
                 meta: { title: '选课看板', icon: 'Odometer' }
+            },
+            {
+                path: 'enrollment',
+                name: 'Enrollment',
+                component: () => import('@/views/course/Enrollment.vue'),
+                meta: { title: '选课名单', icon: 'List', roles: ['TEACHER', 'COLLEGE_ADMIN', 'SUPER_ADMIN', 'SCHOOL_ADMIN'] }
             },
             {
                 path: 'enroll-forecast',
@@ -92,7 +109,21 @@ export const constantRoutes = [
                 path: 'profile',
                 name: 'TeacherProfile',
                 component: () => import('@/views/teacher/Profile.vue'),
-                meta: { title: '基本信息', icon: 'UserFilled' }
+                meta: { title: '基本信息', icon: 'UserFilled', roles: ['TEACHER', 'COLLEGE_ADMIN', 'SUPER_ADMIN', 'SCHOOL_ADMIN'] }
+            }
+        ]
+    },
+    {
+        path: '/system',
+        component: Layout,
+        redirect: '/system/config',
+        meta: { title: '系统配置', icon: 'Setting', roles: ['SCHOOL_ADMIN', 'SUPER_ADMIN'] },
+        children: [
+            {
+                path: 'config',
+                name: 'SysConfig',
+                component: () => import('@/views/system/Config.vue'),
+                meta: { title: '基础设定', icon: 'Tools' }
             }
         ]
     },
@@ -124,25 +155,22 @@ router.beforeEach(async (to, from, next) => {
         } else {
             // Check if user has obtained his permission roles
             const hasRoles = userStore.roles && userStore.roles.length > 0
-            if (hasRoles) {
-                next()
-            } else {
+            if (!hasRoles) {
                 try {
-                    // Get user info and permissions
                     await userStore.getUserInfo()
-                    // Here we could implement dynamic routes. For simplicity in this demo, all routes are mounted
-                    // but access is restricted via menu filtering and direct URL checking:
-                    if (to.meta.permission && !userStore.hasPermission(to.meta.permission)) {
-                        // if no access 
-                        next({ path: '/overview' })
-                    } else {
-                        next()
-                    }
                 } catch (error) {
                     await userStore.logout()
-                    next(`/login?redirect=${to.path}`)
+                    return next(`/login?redirect=${to.path}`)
                 }
             }
+
+            if (to.meta.permission && !userStore.hasPermission(to.meta.permission)) {
+                return next({ path: '/' })
+            }
+            if (to.meta.roles && !to.meta.roles.some(role => userStore.roles.includes(role))) {
+                return next({ path: '/' })
+            }
+            next()
         }
     } else {
         // has no token

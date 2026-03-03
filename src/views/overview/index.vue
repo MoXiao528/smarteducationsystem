@@ -71,7 +71,9 @@ import request from '@/utils/request'
 import GlobalFilterBar from '@/components/GlobalFilterBar.vue'
 import MetricCards from '@/components/MetricCards.vue'
 import ChartWrapper from '@/components/ChartWrapper.vue'
+import { useUserStore } from '@/store/user'
 
+const userStore = useUserStore()
 const currentFilters = ref({})
 
 // Metrics Data
@@ -95,6 +97,14 @@ const rankingBy = ref('college')
 const rankingOption = ref({})
 const rankingLoading = ref(false)
 
+const getRequestParams = () => {
+   const params = { ...currentFilters.value }
+   if (userStore.roles.includes('COLLEGE_ADMIN')) {
+      delete params.collegeId
+   }
+   return params
+}
+
 const handleFilterChange = (filters) => {
    currentFilters.value = filters
    fetchAllData()
@@ -112,7 +122,7 @@ const fetchMetrics = async () => {
      const data = await request({
        url: '/olap/overview/metrics',
        method: 'get',
-       params: currentFilters.value
+       params: getRequestParams()
      })
      
      // Transform to MetricCards format
@@ -130,13 +140,13 @@ const fetchMetrics = async () => {
 const fetchTrendData = async () => {
   trendLoading.value = true
   try {
+     const params = getRequestParams()
+     params.metric = trendMetric.value
+
      const data = await request({
        url: '/olap/overview/trends',
        method: 'get',
-       params: {
-          ...currentFilters.value,
-          metric: trendMetric.value
-       }
+       params
      })
      
      trendOption.value = {
@@ -172,10 +182,13 @@ const fetchTrendData = async () => {
 const fetchQualityData = async () => {
   qualityLoading.value = true
   try {
+     const params = getRequestParams()
+     const reqParam = { semesterId: params.semesterId }
+
      const data = await request({
        url: '/olap/overview/data-quality',
        method: 'get',
-       params: { semesterId: currentFilters.value.semesterId }
+       params: reqParam
      })
      Object.assign(qualityData, data)
   } catch(e) {} finally {
@@ -186,11 +199,13 @@ const fetchQualityData = async () => {
 const fetchRankingData = async () => {
    rankingLoading.value = true
    try {
+     const paramFilters = getRequestParams()
      const data = await request({
        url: '/olap/overview/rankings',
        method: 'get',
        params: {
-          semesterId: currentFilters.value.semesterId,
+          semesterId: paramFilters.semesterId,
+          collegeId: paramFilters.collegeId,
           by: rankingBy.value,
           metric: 'avgScore', // Fixed for this chart or make configurable
           top: 10
