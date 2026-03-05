@@ -51,14 +51,14 @@
         <el-card shadow="never" class="chart-card margin-top-20">
            <template #header>
              <div class="card-header">
-               <span>排行榜 (Top 10)</span>
+               <span>排行榜</span>
                <el-select v-model="rankingBy" size="small" style="width: 90px" @change="fetchRankingData">
                   <el-option label="学院" value="college" />
                   <el-option label="专业" value="major" />
                </el-select>
              </div>
            </template>
-           <ChartWrapper :option="rankingOption" :loading="rankingLoading" height="150px" />
+           <ChartWrapper :option="rankingOption" :loading="rankingLoading" height="250px" />
         </el-card>
       </el-col>
     </el-row>
@@ -206,28 +206,54 @@ const fetchRankingData = async () => {
        params: {
           semesterId: paramFilters.semesterId,
           collegeId: paramFilters.collegeId,
+          gradeId: paramFilters.gradeId,
           by: rankingBy.value,
-          metric: 'avgScore', // Fixed for this chart or make configurable
-          top: 10
+          metric: 'avgScore' // Fixed for this chart or make configurable
        }
      })
      
-     const yData = data.map(i => i.name).reverse()
-     const xData = data.map(i => i.value).reverse()
+     const dataArray = [...data].reverse()
+     const yData = dataArray.map(i => i.name)
+     const xData = dataArray.map(i => {
+         const color = i.isMyCollege ? '#e6a23c' : '#34bfa3'
+         return {
+             value: Number(i.value).toFixed(2),
+             itemStyle: { color, borderRadius: [0, 4, 4, 0] }
+         }
+     })
+
+     const totalItems = dataArray.length
+     const showItems = 10
+     const startValue = Math.max(0, totalItems - showItems)
+     const endValue = totalItems - 1
 
      rankingOption.value = {
-        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-        grid: { left: '3%', right: '10%', bottom: '0', top: '0', containLabel: true },
+        tooltip: { trigger: 'axis', axisPointer: { type: 'none' } },
+        grid: { left: '3%', right: '15%', bottom: '0', top: '0', containLabel: true },
         xAxis: { type: 'value', show: false },
         yAxis: { type: 'category', data: yData, axisTick: { show: false }, axisLine: { show: false } },
+        dataZoom: [
+          {
+            type: 'slider',
+            yAxisIndex: 0,
+            width: 8,
+            right: 0,
+            show: totalItems > showItems,
+            startValue,
+            endValue
+          },
+          {
+            type: 'inside',
+            yAxisIndex: 0,
+            zoomOnMouseWheel: false,
+            moveOnMouseWheel: true,
+            moveOnMouseMove: true
+          }
+        ],
         series: [{
            type: 'bar',
            data: xData,
            label: { show: true, position: 'right', color: '#666' },
-           itemStyle: {
-              color: '#34bfa3',
-              borderRadius: [0, 4, 4, 0]
-           },
            barWidth: '15px'
         }]
      }

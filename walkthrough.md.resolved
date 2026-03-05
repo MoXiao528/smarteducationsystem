@@ -1,0 +1,149 @@
+# 学科趋势预测 — 实现总结 & 前端同步指南
+
+## 后端已完成
+
+### 新增/修改文件
+
+| 文件 | 说明 |
+|------|------|
+| [PredictDto.java](file:///d:/Code/smarteducationsystem_back/src/main/java/com/example/smarteducationsystem_back/dto/PredictDto.java) | 请求/响应 DTO（SubjectTrendReq、TrendPoint、ForecastPoint、Confidence、PredictMetrics） |
+| [PredictMapper.java](file:///d:/Code/smarteducationsystem_back/src/main/java/com/example/smarteducationsystem_back/mapper/PredictMapper.java) | 按学期/学年粒度聚合历史指标（fact_score JOIN dim_semester） |
+| [ForecastUtils.java](file:///d:/Code/smarteducationsystem_back/src/main/java/com/example/smarteducationsystem_back/common/ForecastUtils.java) | 纯 Java 预测算法：移动平均、线性回归、MAE 计算、置信区间 |
+| [PredictController.java](file:///d:/Code/smarteducationsystem_back/src/main/java/com/example/smarteducationsystem_back/controller/PredictController.java) | `GET /api/predict/subject-trend` — 完整趋势预测 API |
+
+### 权限
+`@CheckRole({"TEACHER", "COLLEGE_ADMIN", "SCHOOL_ADMIN", "SYS_ADMIN"})`  
+学生角色无法访问。
+
+### 构建验证
+`mvnw compile` ✅ 通过
+
+---
+
+## 前端同步修改指南
+
+> 下面是需要前端 agent 做的事，可以直接发送。
+
+### 1. 新增路由 & 菜单
+
+在路由配置中添加：
+```js
+{
+  path: '/predict/subject-trend',
+  name: 'SubjectTrendPredict',
+  component: () => import('@/views/predict/SubjectTrendPredict.vue'),
+  meta: {
+    title: '学科趋势预测',
+    icon: 'TrendCharts',  // 或适合的图标
+    roles: ['TEACHER', 'COLLEGE_ADMIN', 'SCHOOL_ADMIN', 'SYS_ADMIN']  // 学生不可见
+  }
+}
+```
+
+### 2. API 接口
+
+```
+GET /api/predict/subject-trend
+```
+
+**请求参数（Query String）：**
+
+| 参数 | 类型 | 必填 | 默认 | 说明 |
+|------|------|:---:|------|------|
+| `dimension` | String | ✅ | COLLEGE | `COLLEGE` / `MAJOR` / `COURSE` |
+| `dimensionId` | Integer | ✅ | - | 对应维度 ID |
+| `timeGranularity` | String | - | SEMESTER | `SEMESTER` / `YEAR` |
+| `startSemesterId` | Integer | - | null | 起始学期 ID |
+| `endSemesterId` | Integer | - | null | 截止学期 ID |
+| `horizon` | Integer | - | 1 | 预测步长 1~3 |
+| `model` | String | - | MA | [MA](file:///d:/Code/smarteducationsystem_back/src/main/java/com/example/smarteducationsystem_back/common/ForecastUtils.java#82-105)(移动平均) / `LR`(线性回归) |
+
+**响应体（`data` 部分）：**
+
+```json
+{
+  "history": [
+    { "label": "2024-Fall", "avgScore": 72.5, "passRate": 0.85, "excellentRate": 0.25, "enrollCount": 320 }
+  ],
+  "forecast": [
+    {
+      "label": "2025-Spring",
+      "avgScore": 77.5, "passRate": 0.90, "excellentRate": 0.30, "enrollCount": 350,
+      "confidence": { "lower": 75.1, "upper": 79.9 }
+    }
+  ],
+  "metrics": {
+    "mae": 2.8,
+    "trend": "UP",
+    "changeRate": 0.023
+  },
+  "suggestion": "📈 该专业平均分呈上升趋势..."
+}
+```
+
+### 3. 页面布局
+
+```
+┌─────────────────────────────────────────┐
+│ 筛选栏                                    │
+│ [维度: 学院▼|专业▼|课程▼] [维度ID 选择器]    │
+│ [时间粒度: 学期|学年] [起止学期选择]          │
+│ [预测步长: 1|2|3] [模型: MA|LR]            │
+├─────────────────────────────────────────┤
+│ 主图: ECharts 折线图                       │
+│ - history 部分: 实线                       │
+│ - forecast 部分: 虚线 + areaStyle 做置信区间 │
+│ - Y 轴根据当前选中指标切换 (avgScore/passRate/excellentRate/enrollCount) │
+├──────────────────┬──────────────────────┤
+│ 预测摘要卡片       │ 模型信息卡片           │
+│ 下期预测值         │ MAE: metrics.mae     │
+│ 趋势: metrics.trend│ 模型: req.model      │
+│ 变幅: changeRate   │                      │
+├──────────────────┴──────────────────────┤
+│ 历史+预测明细表格 (el-table)               │
+├─────────────────────────────────────────┤
+│ AI 建议: suggestion 文本                   │
+└─────────────────────────────────────────┘
+```
+
+### 4. ECharts 图表关键配置
+
+```js
+option = {
+  legend: { data: ['历史', '预测'] },
+  xAxis: {
+    data: [...history.map(h => h.label), ...forecast.map(f => f.label)]
+  },
+  series: [
+    {
+      name: '历史',
+      type: 'line',
+      data: history.map(h => h[currentMetric]),  // currentMetric 动态切换
+      lineStyle: { type: 'solid' }
+    },
+    {
+      name: '预测',
+      type: 'line',
+      data: [
+        ...new Array(history.length - 1).fill(null),
+        history[history.length - 1]?.[currentMetric],  // 与历史线末尾衔接
+        ...forecast.map(f => f[currentMetric])
+      ],
+      lineStyle: { type: 'dashed' },
+      areaStyle: { /* 用置信区间上下界做mark area */ }
+    }
+  ]
+}
+```
+
+### 5. 筛选联动逻辑
+
+- `dimension` 切换时清空 `dimensionId`
+- 选学院 → 调 `/api/dict/majors?collegeId=X` 过滤专业
+- 选专业 → 调 `/api/dict/courses?majorId=X` 过滤课程  
+  （dict 接口已有，参考现有 GlobalFilterBar 组件）
+
+### 6. 角色控制
+
+- 菜单/路由仅对 `TEACHER|COLLEGE_ADMIN|SCHOOL_ADMIN|SYS_ADMIN` 可见
+- `COLLEGE_ADMIN` 的学院维度会被后端自动锁定，前端可同步 disable 学院选择器

@@ -131,7 +131,7 @@ const fetchTableData = async () => {
    loadingTable.value = true
    try {
       const data = await request({
-         url: '/oltp/students',
+         url: '/profile/students',
          method: 'get',
          params: {
             ...currentFilters.value,

@@ -26,8 +26,20 @@
        >
           <template #status="{ row }">
              <el-tag :type="row.status === 'ACTIVE' ? 'success' : 'info'">
-                {{ row.status === 'ACTIVE' ? '已选' : '退课' }}
+                {{ row.status === 'ACTIVE' ? '已选' : '已退选' }}
              </el-tag>
+          </template>
+          <template #actions="{ row }">
+             <el-button
+               v-if="row.status === 'ACTIVE'"
+               type="danger" size="small" text
+               @click="handleDrop(row)"
+             >退选</el-button>
+             <el-button
+               v-else
+               type="success" size="small" text
+               @click="handleRestore(row)"
+             >恢复</el-button>
           </template>
        </DataTable>
     </div>
@@ -37,11 +49,15 @@
 <script setup>
 import { reactive, ref, computed } from 'vue'
 import request from '@/utils/request'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import GlobalFilterBar from '@/components/GlobalFilterBar.vue'
 import DataTable from '@/components/DataTable.vue'
 import { useUserStore } from '@/store/user'
 
 const userStore = useUserStore()
+const isAdmin = computed(() =>
+  userStore.roles.some(r => ['COLLEGE_ADMIN', 'SCHOOL_ADMIN', 'SUPER_ADMIN', 'SYS_ADMIN'].includes(r))
+)
 
 const currentFilters = ref({})
 const queryParams = reactive({
@@ -54,13 +70,19 @@ const loading = ref(false)
 const tableData = ref([])
 const total = ref(0)
 
-const columns = [
-  { prop: 'studentNo', label: '学号', width: '130', sortable: true },
-  { prop: 'studentName', label: '姓名', width: '120' },
-  { prop: 'courseName', label: '课程', minWidth: '150' },
-  { prop: 'teacherName', label: '教师', width: '120' },
-  { prop: 'status', label: '选课状态', width: '120', slotName: 'status' }
-]
+const columns = computed(() => {
+  const base = [
+    { prop: 'studentNo', label: '学号', width: '130', sortable: true },
+    { prop: 'studentName', label: '姓名', width: '120' },
+    { prop: 'courseName', label: '课程', minWidth: '150' },
+    { prop: 'teacherName', label: '教师', width: '120' },
+    { prop: 'status', label: '选课状态', width: '120', slotName: 'status' }
+  ]
+  if (isAdmin.value) {
+    base.push({ prop: 'actions', label: '操作', width: '160', slotName: 'actions' })
+  }
+  return base
+})
 
 const handleFilterChange = (filters) => {
    currentFilters.value = filters
@@ -85,9 +107,7 @@ const fetchData = async () => {
    loading.value = true
    try {
       const params = { ...currentFilters.value, ...queryParams }
-      
-      // Filter out inputs similar to scores logic if using /oltp/enrolls 
-      // where the backend automatically drops it depending on user role logic
+
       if (userStore.roles.includes('TEACHER')) {
          delete params.collegeId
          delete params.majorId
@@ -103,6 +123,20 @@ const fetchData = async () => {
    } catch(e) {} finally {
       loading.value = false
    }
+}
+
+const handleDrop = async (row) => {
+  await ElMessageBox.confirm(`确认将 ${row.studentName} 从 ${row.courseName} 退选？`, '退选确认')
+  await request({ url: '/oltp/enrolls/drop', method: 'post', data: { id: row.id, isDrop: 1 } })
+  ElMessage.success('已退选')
+  fetchData()
+}
+
+const handleRestore = async (row) => {
+  await ElMessageBox.confirm(`确认恢复 ${row.studentName} 的 ${row.courseName} 选课？`, '恢复确认')
+  await request({ url: '/oltp/enrolls/drop', method: 'post', data: { id: row.id, isDrop: 0 } })
+  ElMessage.success('已恢复')
+  fetchData()
 }
 </script>
 

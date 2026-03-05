@@ -31,7 +31,7 @@ export const constantRoutes = [
         path: '/analysis',
         component: Layout,
         redirect: '/analysis/compare',
-        meta: { title: '分析中心', icon: 'PieChart' },
+        meta: { title: '分析中心', icon: 'PieChart', roles: ['COLLEGE_ADMIN', 'SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'] },
         children: [
             {
                 path: 'compare',
@@ -43,7 +43,7 @@ export const constantRoutes = [
                 path: 'group-trend',
                 name: 'GroupTrendAnalysis',
                 component: () => import('@/views/analysis/GroupTrend.vue'),
-                meta: { title: '群体对比看板', icon: 'Histogram', roles: ['COLLEGE_ADMIN', 'SUPER_ADMIN', 'SCHOOL_ADMIN', 'STUDENT'] }
+                meta: { title: '群体对比看板', icon: 'Histogram', roles: ['COLLEGE_ADMIN', 'SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'] }
             }
         ]
     },
@@ -69,7 +69,19 @@ export const constantRoutes = [
                 path: 'progress',
                 name: 'ProgressTrend',
                 component: () => import('@/views/student/ProgressTrend.vue'),
-                meta: { title: '进步趋势追踪', icon: 'TrendCharts' }
+                meta: { title: '进步趋势追踪', icon: 'TrendCharts', roles: ['STUDENT'] }
+            },
+            {
+                path: 'group-trend',
+                name: 'StudentGroupTrend',
+                component: () => import('@/views/analysis/GroupTrend.vue'),
+                meta: { title: '群体对比看板', icon: 'Histogram', roles: ['STUDENT'] }
+            },
+            {
+                path: 'enroll-dashboard',
+                name: 'StudentEnrollDashboard',
+                component: () => import('@/views/course/EnrollDashboard.vue'),
+                meta: { title: '选课看板', icon: 'Odometer', roles: ['STUDENT'] }
             }
         ]
     },
@@ -77,7 +89,7 @@ export const constantRoutes = [
         path: '/course',
         component: Layout,
         redirect: '/course/enroll-dashboard',
-        meta: { title: '课程优化', icon: 'Reading' },
+        meta: { title: '课程优化', icon: 'Reading', roles: ['TEACHER', 'COLLEGE_ADMIN', 'SUPER_ADMIN', 'SCHOOL_ADMIN'] },
         children: [
             {
                 path: 'enroll-dashboard',
@@ -92,10 +104,10 @@ export const constantRoutes = [
                 meta: { title: '选课名单', icon: 'List', roles: ['TEACHER', 'COLLEGE_ADMIN', 'SUPER_ADMIN', 'SCHOOL_ADMIN'] }
             },
             {
-                path: 'enroll-forecast',
-                name: 'EnrollForecast',
-                component: () => import('@/views/course/EnrollForecast.vue'),
-                meta: { title: '选课趋势预测', icon: 'TrendCharts' }
+                path: 'subject-trend',
+                name: 'SubjectTrendPredict',
+                component: () => import('@/views/predict/SubjectTrendPredict.vue'),
+                meta: { title: '学科趋势预测', icon: 'DataAnalysis' }
             }
         ]
     },
