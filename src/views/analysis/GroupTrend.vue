@@ -292,12 +292,49 @@ const adminCollegeOptions = computed(() => {
 })
 
 const overviewMetricLabel = computed(() => getMetricName(overviewMetric.value))
+const shouldFormatOverviewTooltipToTwoDecimals = computed(
+  () => isSchoolAdmin.value && adminCollegeSelection.value === ALL_COLLEGE
+)
 
 const formatOverviewValue = value => {
   if (overviewMetric.value === 'passRate' || overviewMetric.value === 'excellentRate') {
     return formatRateValue(value)
   }
   return value
+}
+
+const formatOverviewTooltipValue = value => {
+  if (value == null || value === '') return '-'
+
+  const numericValue = Number(value)
+  if (Number.isNaN(numericValue)) return value
+
+  if (!shouldFormatOverviewTooltipToTwoDecimals.value) {
+    return overviewMetric.value === 'avgScore' ? `${numericValue}` : `${numericValue}%`
+  }
+
+  return overviewMetric.value === 'avgScore' ? numericValue.toFixed(2) : `${numericValue.toFixed(2)}%`
+}
+
+const buildOverviewTooltip = () => {
+  if (!shouldFormatOverviewTooltipToTwoDecimals.value) {
+    return { trigger: 'axis' }
+  }
+
+  return {
+    trigger: 'axis',
+    formatter: params => {
+      const items = Array.isArray(params) ? params : [params]
+      if (!items.length) return ''
+
+      const lines = [items[0].axisValueLabel || items[0].axisValue || '']
+      items.forEach(item => {
+        const rawValue = Array.isArray(item.value) ? item.value[item.value.length - 1] : item.value
+        lines.push(`${item.marker || ''}${item.seriesName || overviewMetricLabel.value}: ${formatOverviewTooltipValue(rawValue)}`)
+      })
+      return lines.join('<br/>')
+    }
+  }
 }
 
 const renderCourseBar = () => {
@@ -307,7 +344,7 @@ const renderCourseBar = () => {
   const data = overviewData.courseMetrics
   courseBarChart.setOption(
     {
-      tooltip: { trigger: 'axis' },
+      tooltip: buildOverviewTooltip(),
       grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
       xAxis: {
         type: 'category',
@@ -321,6 +358,7 @@ const renderCourseBar = () => {
       },
       series: [
         {
+          name: overviewMetricLabel.value,
           type: 'bar',
           data: data.map(item => formatOverviewValue(item[overviewMetric.value])),
           barMaxWidth: 40,
@@ -345,7 +383,7 @@ const renderClassBar = () => {
   const data = overviewData.classMetrics
   classBarChart.setOption(
     {
-      tooltip: { trigger: 'axis' },
+      tooltip: buildOverviewTooltip(),
       grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
       xAxis: {
         type: 'category',
@@ -359,6 +397,7 @@ const renderClassBar = () => {
       },
       series: [
         {
+          name: overviewMetricLabel.value,
           type: 'bar',
           data: data.map(item => formatOverviewValue(item[overviewMetric.value])),
           barMaxWidth: 40,
@@ -399,7 +438,7 @@ const renderCourseTrend = () => {
 
   courseTrendChart.setOption(
     {
-      tooltip: { trigger: 'axis' },
+      tooltip: buildOverviewTooltip(),
       legend: { bottom: 0, type: 'scroll' },
       grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
       xAxis: { type: 'category', data: semesters },
