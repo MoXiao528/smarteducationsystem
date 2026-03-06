@@ -33,14 +33,14 @@
         <el-table-column label="满载率" width="150">
            <template #default="scope">
              <el-progress 
-                :percentage="(scope.row.enroll / scope.row.capacity * 100).toFixed(1)"
+                :percentage="Number((scope.row.enroll / scope.row.capacity * 100).toFixed(2))"
                 :status="getLoadStatus(scope.row.enroll, scope.row.capacity)" 
              />
            </template>
         </el-table-column>
         <el-table-column prop="dropRate" label="退课率" width="100">
            <template #default="scope">
-             {{ (scope.row.dropRate * 100).toFixed(1) + '%' }}
+             {{ Number((scope.row.dropRate * 100).toFixed(2)) + '%' }}
            </template>
         </el-table-column>
       </el-table>

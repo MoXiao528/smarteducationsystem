@@ -109,7 +109,7 @@
              <div class="metrics-grid">
                 <div class="metric-item">
                    <div class="label">MAE (平均绝对误差)</div>
-                   <div class="value">{{ resultData.metrics?.mae?.toFixed(2) ?? '-' }}</div>
+                   <div class="value">{{ resultData.metrics?.mae != null ? Number(resultData.metrics.mae.toFixed(2)) : '-' }}</div>
                 </div>
                 <div class="metric-item">
                    <div class="label">当前模型</div>
@@ -152,7 +152,7 @@
           <el-table-column prop="enrollCount" label="选课人数" width="100" />
           <el-table-column label="置信区间" v-if="tableData.some(r => r.confidence)">
              <template #default="{ row }">
-                <span v-if="row.confidence">{{ row.confidence.lower?.toFixed(1) }} ~ {{ row.confidence.upper?.toFixed(1) }}</span>
+                <span v-if="row.confidence">{{ Number(row.confidence.lower?.toFixed(2)) }} ~ {{ Number(row.confidence.upper?.toFixed(2)) }}</span>
                 <span v-else>-</span>
              </template>
           </el-table-column>
@@ -290,7 +290,7 @@ const rebuildChart = () => {
   const isRate = metric === 'passRate' || metric === 'excellentRate'
   const formatVal = (v) => {
     if (v == null) return null
-    return isRate ? +(v * 100).toFixed(2) : +Number(v).toFixed(2)
+    return isRate ? Number((v * 100).toFixed(2)) : Number(Number(v).toFixed(2))
   }
 
   const allLabels = [...history.map(h => h.label), ...forecast.map(f => f.label)]
@@ -310,8 +310,8 @@ const rebuildChart = () => {
     if (f.confidence) {
       const xIdx = history.length + idx
       markAreaData.push([
-        { xAxis: allLabels[xIdx], yAxis: isRate ? +(f.confidence.lower * 100).toFixed(2) : +f.confidence.lower.toFixed(2) },
-        { xAxis: allLabels[xIdx], yAxis: isRate ? +(f.confidence.upper * 100).toFixed(2) : +f.confidence.upper.toFixed(2) }
+        { xAxis: allLabels[xIdx], yAxis: isRate ? Number((f.confidence.lower * 100).toFixed(2)) : Number(f.confidence.lower.toFixed(2)) },
+        { xAxis: allLabels[xIdx], yAxis: isRate ? Number((f.confidence.upper * 100).toFixed(2)) : Number(f.confidence.upper.toFixed(2)) }
       ])
     }
   })
@@ -383,8 +383,8 @@ const tableData = computed(() => {
   return [...history, ...forecast]
 })
 
-const fmt = (v) => v != null ? Number(v).toFixed(2) : '-'
-const pct = (v) => v != null ? (v * 100).toFixed(2) + '%' : '-'
+const fmt = (v) => v != null ? Number(Number(v).toFixed(2)) : '-'
+const pct = (v) => v != null ? Number((v * 100).toFixed(2)) + '%' : '-'
 
 // ── 摘要 ──
 const nextForecastValue = computed(() => {
@@ -393,7 +393,7 @@ const nextForecastValue = computed(() => {
   const v = fc[0][currentMetric.value]
   if (v == null) return '-'
   const isRate = currentMetric.value === 'passRate' || currentMetric.value === 'excellentRate'
-  return isRate ? (v * 100).toFixed(2) + '%' : Number(v).toFixed(2)
+  return isRate ? Number((v * 100).toFixed(2)) + '%' : Number(Number(v).toFixed(2))
 })
 
 const trendText = computed(() => {
@@ -410,7 +410,7 @@ const trendClass = computed(() => {
 const changeRateText = computed(() => {
   const r = resultData.value.metrics?.changeRate
   if (r == null) return '-'
-  return (r > 0 ? '+' : '') + (r * 100).toFixed(2) + '%'
+  return (r > 0 ? '+' : '') + Number((r * 100).toFixed(2)) + '%'
 })
 
 // ── 初始化 ──

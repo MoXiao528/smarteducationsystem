@@ -83,7 +83,7 @@ const initChart = (data) => {
         yAxisIndex: 1,
         // Since rates might be 0.x or percentages, assuming 1.0 means 100% just in case, but standard is often 0-1
         // Wait, if it's already a percentage, we use it directly:
-        data: data.passRate ? data.passRate.map(v => v <= 1 ? (v * 100).toFixed(2) : v) : [],
+        data: data.passRate ? data.passRate.map(v => v <= 1 ? Number((v * 100).toFixed(2)) : Number(v.toFixed(2))) : [],
         smooth: true,
         itemStyle: { color: '#67C23A' }
       },
@@ -91,7 +91,7 @@ const initChart = (data) => {
         name: '优秀率(%)',
         type: 'line',
         yAxisIndex: 1,
-        data: data.excellentRate ? data.excellentRate.map(v => v <= 1 ? (v * 100).toFixed(2) : v) : [],
+        data: data.excellentRate ? data.excellentRate.map(v => v <= 1 ? Number((v * 100).toFixed(2)) : Number(v.toFixed(2))) : [],
         smooth: true,
         itemStyle: { color: '#E6A23C' }
       }

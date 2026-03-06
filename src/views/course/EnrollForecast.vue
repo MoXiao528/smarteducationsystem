@@ -111,8 +111,8 @@ const fetchPredictData = async () => {
          params: { courseId: courseId.value, horizon: horizon.value, model: model.value }
       })
       
-      metrics.mae = data.metrics.mae.toFixed(2)
-      metrics.rmse = data.metrics.rmse.toFixed(2)
+      metrics.mae = Number(data.metrics.mae.toFixed(2))
+      metrics.rmse = Number(data.metrics.rmse.toFixed(2))
       suggestionText.value = data.suggestionText
 
       const histData = data.history || []

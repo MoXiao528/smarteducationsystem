@@ -130,7 +130,7 @@ const fetchMetrics = async () => {
        { label: '学生人数', value: data.studentCount },
        { label: '教师人数', value: data.teacherCount },
        { label: '课程数量', value: data.courseCount },
-       { label: '平均分数', value: data.avgScore.toFixed(1) },
+       { label: '平均分数', value: Number(data.avgScore.toFixed(2)) },
        { label: '及格率', value: data.passRate, unit: '%' },
        { label: '优秀率', value: data.excellentRate, unit: '%' }
      ]
@@ -171,7 +171,7 @@ const fetchTrendData = async () => {
               color: 'rgba(64,158,255,0.2)'
            },
            itemStyle: { color: '#409EFF' },
-           data: (data.y || []).map(val => trendMetric.value.includes('Rate') ? (val * 100).toFixed(1) : val)
+           data: (data.y || []).map(val => trendMetric.value.includes('Rate') ? Number((val * 100).toFixed(2)) : Number(val.toFixed(2)))
         }]
      }
   } catch(e) {} finally {
@@ -217,7 +217,7 @@ const fetchRankingData = async () => {
      const xData = dataArray.map(i => {
          const color = i.isMyCollege ? '#e6a23c' : '#34bfa3'
          return {
-             value: Number(i.value).toFixed(2),
+             value: Number(Number(i.value).toFixed(2)),
              itemStyle: { color, borderRadius: [0, 4, 4, 0] }
          }
      })
@@ -264,7 +264,7 @@ const fetchRankingData = async () => {
 
 const formatPercent = (val) => {
    if(!val) return '0%'
-   return (val * 100).toFixed(2) + '%'
+   return Number((val * 100).toFixed(2)) + '%'
 }
 
 const getMetricName = (metric) => {

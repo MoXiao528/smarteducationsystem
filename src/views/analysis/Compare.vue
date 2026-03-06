@@ -28,17 +28,19 @@
                   <el-table-column prop="name" :label="dimensionName" />
                   <el-table-column prop="count" label="有效成绩数" />
                   <el-table-column prop="avgScore" label="平均分">
-                    <template #default="scope">{{ scope.row.avgScore ? scope.row.avgScore.toFixed(1) : '-' }}</template>
+                    <template #default="scope">{{ scope.row.avgScore != null ? Number(scope.row.avgScore.toFixed(2)) : '-' }}</template>
                   </el-table-column>
-                  <el-table-column prop="stdDev" label="标准差" />
+                  <el-table-column prop="stdDev" label="标准差">
+                    <template #default="scope">{{ scope.row.stdDev != null ? Number(scope.row.stdDev.toFixed(2)) : '-' }}</template>
+                  </el-table-column>
                    <el-table-column prop="passRate" label="及格率">
                      <template #default="scope">
-                       <el-progress :percentage="Number((scope.row.passRate * 100).toFixed(1))" :color="customColors" />
+                       <el-progress :percentage="scope.row.passRate != null ? Number((scope.row.passRate * 100).toFixed(2)) : 0" :color="customColors" />
                      </template>
                   </el-table-column>
                   <el-table-column prop="excellentRate" label="优秀率">
                      <template #default="scope">
-                       <el-progress :percentage="Number((scope.row.excellentRate * 100).toFixed(1))" />
+                       <el-progress :percentage="scope.row.excellentRate != null ? Number((scope.row.excellentRate * 100).toFixed(2)) : 0" />
                      </template>
                   </el-table-column>
                </el-table>
@@ -71,10 +73,13 @@
 import { ref, onMounted } from 'vue'
 import request from '@/utils/request'
 import { useDictStore } from '@/store/dict'
+import { useUserStore } from '@/store/user'
 import ChartWrapper from '@/components/ChartWrapper.vue'
 
 const dictStore = useDictStore()
+const userStore = useUserStore()
 
+const isCollegeAdmin = ref(userStore.roles.includes('COLLEGE_ADMIN'))
 const dimension = ref('COLLEGE')
 const selectedIds = ref([])
 const objectOptions = ref([])
@@ -97,17 +102,19 @@ const loadObjectOptions = async () => {
       objectOptions.value = await dictStore.getColleges()
       dimensionName.value = '学院'
    } else if (dimension.value === 'MAJOR') {
-      // Need all majors without college id strict filter, or cascade selection. 
-      // For simplicity here, relying on backend. 
-      // If dictated strictly by guide: GET /api/dict/majors?collegeId=
-      // If user wants all majors, they'll need an endpoint. We mock for now via college loop
-      const colleges = await dictStore.getColleges()
-      let allMajors = []
-      for(let college of colleges) {
-          const m = await dictStore.getMajors(college.id)
-          allMajors.push(...m)
+      if (isCollegeAdmin.value) {
+          // If college admin, backend automatically filters by their college, so just call majors directly
+          objectOptions.value = await dictStore.getMajors(userStore.dataScope?.collegeId || '')
+      } else {
+          // If super admin, they can see all. Since the API might be restricted, fallback:
+          const colleges = await dictStore.getColleges()
+          let allMajors = []
+          for(let college of colleges) {
+              const m = await dictStore.getMajors(college.id)
+              allMajors.push(...m)
+          }
+          objectOptions.value = allMajors
       }
-      objectOptions.value = allMajors
       dimensionName.value = '专业'
    }
 }
@@ -144,8 +151,18 @@ const renderCharts = (data) => {
    distOption.value = {
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
       legend: { data: dist.series.map(s => s.name) },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-      xAxis: { type: 'category', data: dist.bins },
+      grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+      xAxis: { 
+         type: 'category', 
+         data: dist.bins,
+         axisLabel: {
+            rotate: 30,
+            margin: 15,
+            formatter: function (value) {
+               return value.length > 5 ? value.substring(0, 5) + '...' : value;
+            }
+         }
+      },
       yAxis: { type: 'value', name: '比率', axisLabel: { formatter: '{value}' } },
       series: dist.series.map(s => ({
          name: s.name,
@@ -159,8 +176,19 @@ const renderCharts = (data) => {
    trendOption.value = {
       tooltip: { trigger: 'axis' },
       legend: { data: trend.series.map(s => s.name) },
-       grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-      xAxis: { type: 'category', boundaryGap: false, data: trend.x },
+      grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+      xAxis: { 
+         type: 'category', 
+         boundaryGap: false, 
+         data: trend.x,
+         axisLabel: {
+            rotate: 30,
+            margin: 15,
+            formatter: function (value) {
+               return value.length > 5 ? value.substring(0, 5) + '...' : value;
+            }
+         }
+      },
       yAxis: { type: 'value', name: '分数' },
       series: trend.series.map(s => ({
          name: s.name,

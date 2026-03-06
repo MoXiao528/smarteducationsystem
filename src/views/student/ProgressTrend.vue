@@ -157,7 +157,7 @@ const updateMetricsForSelectedSemester = () => {
         index = trendData.x.length - 1
     }
 
-    currentMetrics.avgScore = typeof trendData.avgScore[index] === 'number' ? trendData.avgScore[index].toFixed(1) : '-'
+    currentMetrics.avgScore = typeof trendData.avgScore[index] === 'number' ? Number(trendData.avgScore[index].toFixed(2)) : '-'
     currentMetrics.passRate = trendData.passRate[index]
     currentMetrics.excellentRate = trendData.excellentRate[index]
     currentMetrics.courseCount = trendData.courseCount[index] ?? '-'
@@ -170,7 +170,7 @@ const updateMetricsForSelectedSemester = () => {
 const formatPercent = (val) => {
     if (val === undefined || val === '-' || val === null) return '-'
     const num = Number(val)
-    return num <= 1 ? (num * 100).toFixed(1) + '%' : num + '%'
+    return num <= 1 ? Number((num * 100).toFixed(2)) + '%' : Number(num.toFixed(2)) + '%'
 }
 
 const generateSummary = (index) => {
@@ -184,26 +184,26 @@ const generateSummary = (index) => {
     const extraInfo = (cc != null) ? `共修读 ${cc} 门课程、累计 ${tc} 学分` + (fc > 0 ? `，其中挂科 ${fc} 门` : '，无挂科') : ''
 
     if (index === 0) {
-        progressSummary.value = `在 ${currentName} 学期，您的平均分为 ${currentScore.toFixed(1)} 分${extraInfo ? '，' + extraInfo : ''}。这是您的第一学期成绩记录，请继续保持努力！`
+        progressSummary.value = `在 ${currentName} 学期，您的平均分为 ${Number(currentScore.toFixed(2))} 分${extraInfo ? '，' + extraInfo : ''}。这是您的第一学期成绩记录，请继续保持努力！`
         return
     }
 
     const prevName = trendData.x[index - 1]
     const prevScore = trendData.avgScore[index - 1]
-    const diff = (currentScore - prevScore).toFixed(1)
+    const diff = Number((currentScore - prevScore).toFixed(2))
 
     const suffix = extraInfo ? `（${extraInfo}）` : ''
     if (diff > 0) {
-        progressSummary.value = `在 ${currentName} 学期，您的平均分为 ${currentScore.toFixed(1)} 分，较上一学期 (${prevName}) 提高了 ${diff} 分${suffix}。进步明显，表现非常优秀！`
+        progressSummary.value = `在 ${currentName} 学期，您的平均分为 ${Number(currentScore.toFixed(2))} 分，较上一学期 (${prevName}) 提高了 ${diff} 分${suffix}。进步明显，表现非常优秀！`
     } else if (diff < 0) {
-        progressSummary.value = `在 ${currentName} 学期，您的平均分为 ${currentScore.toFixed(1)} 分，较上一学期 (${prevName}) 下降了 ${Math.abs(diff)} 分${suffix}。请总结经验，争取在未来取得更好的成绩。`
+        progressSummary.value = `在 ${currentName} 学期，您的平均分为 ${Number(currentScore.toFixed(2))} 分，较上一学期 (${prevName}) 下降了 ${Math.abs(diff)} 分${suffix}。请总结经验，争取在未来取得更好的成绩。`
     } else {
-        progressSummary.value = `在 ${currentName} 学期，您的平均分为 ${currentScore.toFixed(1)} 分，与上一学期 (${prevName}) 持平${suffix}。发挥非常稳定，继续加油！`
+        progressSummary.value = `在 ${currentName} 学期，您的平均分为 ${Number(currentScore.toFixed(2))} 分，与上一学期 (${prevName}) 持平${suffix}。发挥非常稳定，继续加油！`
     }
 }
 
 const renderChart = () => {
-    const formattedPassRate = trendData.passRate.map(v => v <= 1 ? Number((v * 100).toFixed(1)) : v)
+    const formattedPassRate = trendData.passRate.map(v => v <= 1 ? Number((v * 100).toFixed(2)) : Number(v.toFixed(2)))
     
     trendOption.value = {
         tooltip: { trigger: 'axis' },
@@ -218,7 +218,7 @@ const renderChart = () => {
             {
                 name: '平均分',
                 type: 'line',
-                data: trendData.avgScore.map(s => Number(s.toFixed(1))),
+                data: trendData.avgScore.map(s => Number(s.toFixed(2))),
                 smooth: true,
                 itemStyle: { color: '#409EFF' },
                 areaStyle: {

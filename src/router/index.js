@@ -121,7 +121,7 @@ export const constantRoutes = [
                 path: 'profile',
                 name: 'TeacherProfile',
                 component: () => import('@/views/teacher/Profile.vue'),
-                meta: { title: '基本信息', icon: 'UserFilled', roles: ['TEACHER', 'COLLEGE_ADMIN', 'SUPER_ADMIN', 'SCHOOL_ADMIN'] }
+                meta: { title: '教师基本信息', icon: 'UserFilled', roles: ['TEACHER', 'COLLEGE_ADMIN', 'SUPER_ADMIN', 'SCHOOL_ADMIN'] }
             }
         ]
     },

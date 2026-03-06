@@ -31,7 +31,7 @@ defineProps({
 const formatValue = (val, unit) => {
    if(val === undefined || val === null) return '-'
    if(unit === '%') {
-      return (val * 100).toFixed(1)
+      return Number((val * 100).toFixed(2))
    }
    return val
 }
