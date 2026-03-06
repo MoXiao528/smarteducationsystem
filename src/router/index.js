@@ -43,7 +43,7 @@ export const constantRoutes = [
                 path: 'group-trend',
                 name: 'GroupTrendAnalysis',
                 component: () => import('@/views/analysis/GroupTrend.vue'),
-                meta: { title: '群体对比看板', icon: 'Histogram', roles: ['COLLEGE_ADMIN', 'SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'] }
+                meta: { title: '群体对比看板', icon: 'Histogram', roles: ['COLLEGE_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'] }
             }
         ]
     },
